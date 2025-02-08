@@ -23,7 +23,6 @@ func (h *WalletHandler) WalletHistory(c echo.Context) error {
 		})
 	}
 
-	// TODO: Pagination
 	transactionList, err := h.service.WalletHistory(c.Request().Context(), walletID)
 	if err != nil {
 		return c.JSON(500, dto.BaseError{

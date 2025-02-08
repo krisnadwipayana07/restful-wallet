@@ -22,7 +22,6 @@ func GetWalletId(c echo.Context) (int64, error) {
 }
 
 func GetIdempotencyKey(c echo.Context) (string, error) {
-	// TODO: Format idempotency key
 	idempotencyKey := c.Request().Header.Get("X-Idempotency-Key")
 	if idempotencyKey == "" {
 		return "", errors.New("idempotency key not found")

@@ -33,8 +33,6 @@ func NewTransactionService(db *gorm.DB, redis *redis.Client, repo repository.Tra
 }
 
 func (s *TransactionServiceImpl) Withdraw(ctx context.Context, idempotencyKey string, walletID int64, req dto.AmountRequest) (resp dto.TransactionResponse, err error) {
-	// TODO: make sure distributed-transaction
-
 	// Check double request
 	val, err := s.redis.Exists(ctx, idempotencyKey).Result()
 	if val == 1 {
@@ -77,6 +75,14 @@ func (s *TransactionServiceImpl) Withdraw(ctx context.Context, idempotencyKey st
 		return dto.TransactionResponse{}, tx.Error
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		} else if tx.Error != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// create transaction
 	transactionID, err := s.transactionRepo.CreateTransaction(ctx, tx, model.Transaction{
 		ID:        0,
@@ -88,7 +94,6 @@ func (s *TransactionServiceImpl) Withdraw(ctx context.Context, idempotencyKey st
 		CreatedAt: time.Now(),
 	})
 	if err != nil {
-		tx.Rollback()
 		log.Printf("creating transaction, err: %+v", err)
 		return dto.TransactionResponse{}, err
 	}
@@ -97,7 +102,6 @@ func (s *TransactionServiceImpl) Withdraw(ctx context.Context, idempotencyKey st
 	newBalance := currBalance.Sub(wdAmount)
 	err = s.walletRepo.UpdateBalance(ctx, tx, curretWallet.ID, newBalance.String())
 	if err != nil {
-		tx.Rollback()
 		log.Printf("updating new balance, err: %+v", err)
 		return dto.TransactionResponse{}, err
 	}
@@ -113,8 +117,6 @@ func (s *TransactionServiceImpl) Withdraw(ctx context.Context, idempotencyKey st
 }
 
 func (s *TransactionServiceImpl) Deposit(ctx context.Context, idempotencyKey string, walletID int64, req dto.AmountRequest) (resp dto.TransactionResponse, err error) {
-	// TODO: make sure distributed-transaction
-
 	// Check double request
 	val, err := s.redis.Exists(ctx, idempotencyKey).Result()
 	if val == 1 {
@@ -140,6 +142,14 @@ func (s *TransactionServiceImpl) Deposit(ctx context.Context, idempotencyKey str
 		return dto.TransactionResponse{}, tx.Error
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		} else if tx.Error != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// create transaction
 	transactionID, err := s.transactionRepo.CreateTransaction(ctx, tx, model.Transaction{
 		ID:        0,
@@ -151,7 +161,6 @@ func (s *TransactionServiceImpl) Deposit(ctx context.Context, idempotencyKey str
 		CreatedAt: time.Now(),
 	})
 	if err != nil {
-		tx.Rollback()
 		log.Printf("creating transaction, err: %+v", err)
 		return dto.TransactionResponse{}, err
 	}
@@ -164,7 +173,6 @@ func (s *TransactionServiceImpl) Deposit(ctx context.Context, idempotencyKey str
 
 	currBalance, err := decimal.NewFromString(curretWallet.CurrentBalance)
 	if err != nil {
-		tx.Rollback()
 		log.Printf("error converting existing wallet to decimal, err: %+v", err)
 		return dto.TransactionResponse{}, err
 	}
@@ -172,7 +180,6 @@ func (s *TransactionServiceImpl) Deposit(ctx context.Context, idempotencyKey str
 	newBalance := currBalance.Add(depositAmount)
 	err = s.walletRepo.UpdateBalance(ctx, tx, curretWallet.ID, newBalance.String())
 	if err != nil {
-		tx.Rollback()
 		log.Printf("updating new balance, err: %+v", err)
 		return dto.TransactionResponse{}, err
 	}
@@ -188,8 +195,6 @@ func (s *TransactionServiceImpl) Deposit(ctx context.Context, idempotencyKey str
 }
 
 func (s *TransactionServiceImpl) Transfer(ctx context.Context, idempotencyKey string, walletID int64, req dto.TransferRequest) (resp dto.TransactionResponse, err error) {
-	// TODO: make sure distributed-transaction
-
 	// Check double request
 	val, err := s.redis.Exists(ctx, idempotencyKey).Result()
 	if val == 1 {
@@ -231,6 +236,14 @@ func (s *TransactionServiceImpl) Transfer(ctx context.Context, idempotencyKey st
 		return dto.TransactionResponse{}, tx.Error
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		} else if tx.Error != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// create transaction
 	senderTransactionID, err := s.transactionRepo.CreateTransaction(ctx, tx, model.Transaction{
 		ID:        0,
@@ -242,7 +255,6 @@ func (s *TransactionServiceImpl) Transfer(ctx context.Context, idempotencyKey st
 		CreatedAt: time.Now(),
 	})
 	if err != nil {
-		tx.Rollback()
 		log.Printf("creating transaction, err: %+v", err)
 		return dto.TransactionResponse{}, err
 	}
@@ -251,12 +263,9 @@ func (s *TransactionServiceImpl) Transfer(ctx context.Context, idempotencyKey st
 	newSenderBalance := senderBalance.Sub(transferAmount)
 	err = s.walletRepo.UpdateBalance(ctx, tx, curretWallet.ID, newSenderBalance.String())
 	if err != nil {
-		tx.Rollback()
 		log.Printf("updating new balance, err: %+v", err)
 		return dto.TransactionResponse{}, err
 	}
-
-	// COPAS
 
 	// create transaction
 	_, err = s.transactionRepo.CreateTransaction(ctx, tx, model.Transaction{
@@ -269,7 +278,6 @@ func (s *TransactionServiceImpl) Transfer(ctx context.Context, idempotencyKey st
 		CreatedAt: time.Now(),
 	})
 	if err != nil {
-		tx.Rollback()
 		log.Printf("creating transaction, err: %+v", err)
 		return dto.TransactionResponse{}, err
 	}
@@ -290,7 +298,6 @@ func (s *TransactionServiceImpl) Transfer(ctx context.Context, idempotencyKey st
 	newReceiverBalance := receiverBalance.Add(transferAmount)
 	err = s.walletRepo.UpdateBalance(ctx, tx, req.ReceiverWalletID, newReceiverBalance.String())
 	if err != nil {
-		tx.Rollback()
 		log.Printf("updating new balance, err: %+v", err)
 		return dto.TransactionResponse{}, err
 	}
