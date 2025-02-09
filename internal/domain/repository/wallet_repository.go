@@ -5,13 +5,14 @@ import (
 	"errors"
 
 	"github.com/krisnadwipayana07/restful-fintech/internal/domain/model"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
 type WalletRepository interface {
 	FindByID(ctx context.Context, id int64) (*model.Wallet, error)
 	CreateWallet(ctx context.Context, account *model.Wallet) error
-	UpdateBalance(ctx context.Context, tx *gorm.DB, walletID int64, newBalance string) error
+	UpdateBalance(ctx context.Context, tx *gorm.DB, walletID int64, newBalance decimal.Decimal) error
 }
 
 type WalletRepositoryImpl struct {
@@ -40,7 +41,7 @@ func (r *WalletRepositoryImpl) CreateWallet(ctx context.Context, account *model.
 		Error
 }
 
-func (r *WalletRepositoryImpl) UpdateBalance(ctx context.Context, tx *gorm.DB, walletID int64, newBalance string) error {
+func (r *WalletRepositoryImpl) UpdateBalance(ctx context.Context, tx *gorm.DB, walletID int64, newBalance decimal.Decimal) error {
 	return tx.WithContext(ctx).
 		Model(&model.Wallet{}).
 		Where("id = ?", walletID).

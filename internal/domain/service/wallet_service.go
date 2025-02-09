@@ -6,11 +6,12 @@ import (
 
 	"github.com/krisnadwipayana07/restful-fintech/internal/domain/repository"
 	"github.com/krisnadwipayana07/restful-fintech/pkg/dto"
+	"github.com/shopspring/decimal"
 )
 
 type WalletService interface {
 	WalletHistory(ctx context.Context, id int64) ([]dto.TransactionDetailResponse, error)
-	WalletBalance(ctx context.Context, id int64) (string, error)
+	WalletBalance(ctx context.Context, id int64) (decimal.Decimal, error)
 }
 
 type WalletServiceImpl struct {
@@ -30,13 +31,13 @@ func (s *WalletServiceImpl) WalletHistory(ctx context.Context, id int64) ([]dto.
 	return dto.NewTransactionListResponse(data), nil
 }
 
-func (s *WalletServiceImpl) WalletBalance(ctx context.Context, id int64) (string, error) {
+func (s *WalletServiceImpl) WalletBalance(ctx context.Context, id int64) (decimal.Decimal, error) {
 	data, err := s.walletRepo.FindByID(ctx, id)
 	if err != nil {
-		return "", err
+		return decimal.Zero, err
 	}
 	if data == nil {
-		return "", errors.New("wallet not found")
+		return decimal.Zero, errors.New("wallet not found")
 	}
 	return data.CurrentBalance, nil
 }

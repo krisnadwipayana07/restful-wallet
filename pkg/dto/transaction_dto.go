@@ -4,15 +4,16 @@ import (
 	"time"
 
 	"github.com/krisnadwipayana07/restful-fintech/internal/domain/model"
+	"github.com/shopspring/decimal"
 )
 
 type AmountRequest struct {
-	Amount string `json:"amount"`
+	Amount decimal.Decimal `json:"amount"`
 }
 
 type TransferRequest struct {
-	ReceiverWalletID int64  `json:"receiver_wallet_id"`
-	Amount           string `json:"amount"`
+	ReceiverWalletID int64           `json:"receiver_wallet_id"`
+	Amount           decimal.Decimal `json:"amount"`
 }
 
 type TransactionResponse struct {
@@ -20,13 +21,13 @@ type TransactionResponse struct {
 }
 
 type TransactionDetailResponse struct {
-	TransactionID int64     `json:"transaction_id"`
-	WalletID      int64     `json:"wallet_id"`
-	Type          int16     `json:"type"`
-	IsDebit       bool      `json:"is_debit"`
-	Value         string    `json:"value"`
-	Remarks       string    `json:"remarks"`
-	CreatedAt     time.Time `json:"created_at"`
+	TransactionID int64           `json:"transaction_id"`
+	WalletID      int64           `json:"wallet_id"`
+	Type          int16           `json:"type"`
+	IsDebit       bool            `json:"is_debit"`
+	Value         decimal.Decimal `json:"value"`
+	Remarks       string          `json:"remarks"`
+	CreatedAt     time.Time       `json:"created_at"`
 }
 
 func NewTransactionListResponse(transactions []model.Transaction) []TransactionDetailResponse {
